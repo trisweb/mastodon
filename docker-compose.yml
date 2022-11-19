@@ -1,18 +1,27 @@
 version: '3'
 services:
+  # Tuning postgres: you'll probably want to adjust the postgresql.conf in the "volumes" data
+  # directory below after deployment. You can use PGTune to get reasonable values for your 
+  # specific server at https://pgtune.leopard.in.ua/
   db:
     restart: always
     image: postgres:14-alpine
+    env_file: .env.db
+    # Set this to at least the size of your shared_buffers from your postgresql.conf above.
     shm_size: 256mb
     networks:
       - internal_network
     healthcheck:
       test: ['CMD', 'pg_isready', '-U', 'postgres']
     volumes:
+      # This puts the postgresql data and config in the same directory as this file.
+      # If you would like it somewhere else (for example, on a different partition), you can
+      # change the location here.
       - ./postgres14:/var/lib/postgresql/data
     environment:
       - 'POSTGRES_HOST_AUTH_METHOD=trust'
 
+  # See https://docs.joinmastodon.org/admin/scaling/#redis for ideas on redis 
   redis:
     restart: always
     image: redis:7-alpine
@@ -75,6 +84,10 @@ services:
     volumes:
       - ./public/system:/mastodon/public/system
 
+  # Note: the streaming server needs to be accessible to the outside world at a configurable URL.
+  # The default path is /api/v1/streaming, but it's configurable using the environment variable
+  # STREAMING_API_BASE_URL. The usual configuration is with an nginx proxy in front
+  # of the web and streaming services, with /api/v1/streaming pointing to [your-internal-ip]:4000
   streaming:
     build: .
     image: tootsuite/mastodon
@@ -98,7 +111,15 @@ services:
     image: tootsuite/mastodon
     restart: always
     env_file: .env.production
-    command: bundle exec sidekiq
+    # Match this number to the number of threads per worker, specified by -c in the command
+    environment:
+      - DB_POOL=25
+    # Note: read about scaling sidekiq here https://docs.joinmastodon.org/admin/scaling/#concurrency
+    # The sidekiq queues are: default, push, pull, mailers, scheduler 
+    # For high volume, you may want to create several sidekiq containers tailored to each queue
+    # with the "-q" parameter. See https://nora.codes/post/scaling-mastodon-in-the-face-of-an-exodus/
+    # for detailed review of how to split the queues. *Ensure you run only one scheduler queue!*
+    command: bundle exec sidekiq -c 25
     depends_on:
       - db
       - redis
