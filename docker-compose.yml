@@ -3,7 +3,8 @@ services:
   db:
     restart: always
     image: postgres:14-alpine
-    shm_size: 256mb
+    env_file: .env.db
+    shm_size: 768mb
     networks:
       - internal_network
     healthcheck:
@@ -23,40 +24,40 @@ services:
     volumes:
       - ./redis:/data
 
-  # es:
-  #   restart: always
-  #   image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
-  #   environment:
-  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.enforce.bootstrap.checks=true"
-  #     - "xpack.license.self_generated.type=basic"
-  #     - "xpack.security.enabled=false"
-  #     - "xpack.watcher.enabled=false"
-  #     - "xpack.graph.enabled=false"
-  #     - "xpack.ml.enabled=false"
-  #     - "bootstrap.memory_lock=true"
-  #     - "cluster.name=es-mastodon"
-  #     - "discovery.type=single-node"
-  #     - "thread_pool.write.queue_size=1000"
-  #   networks:
-  #      - external_network
-  #      - internal_network
-  #   healthcheck:
-  #      test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
-  #   volumes:
-  #      - ./elasticsearch:/usr/share/elasticsearch/data
-  #   ulimits:
-  #     memlock:
-  #       soft: -1
-  #       hard: -1
-  #     nofile:
-  #       soft: 65536
-  #       hard: 65536
-  #   ports:
-  #     - '127.0.0.1:9200:9200'
+  es:
+    restart: always
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
+    environment:
+      - "ES_JAVA_OPTS=-Xms1536m -Xmx1536m -Des.enforce.bootstrap.checks=true"
+      - "xpack.license.self_generated.type=basic"
+      - "xpack.security.enabled=false"
+      - "xpack.watcher.enabled=false"
+      - "xpack.graph.enabled=false"
+      - "xpack.ml.enabled=false"
+      - "bootstrap.memory_lock=true"
+      - "cluster.name=es-mastodon"
+      - "discovery.type=single-node"
+      - "thread_pool.write.queue_size=1000"
+    networks:
+       - external_network
+       - internal_network
+    healthcheck:
+       test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
+    volumes:
+       - ./elasticsearch:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - '127.0.0.1:9200:9200'
 
   web:
     build: .
-    image: ghcr.io/mastodon/mastodon:v4.2.0
+    image: ghcr.io/mastodon/mastodon:v4.2.3
     restart: always
     env_file: .env.production
     command: bundle exec puma -C config/puma.rb
@@ -67,17 +68,17 @@ services:
       # prettier-ignore
       test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:3000/health || exit 1']
     ports:
-      - '127.0.0.1:3000:3000'
+      - '192.168.1.11:3000:3000'
     depends_on:
       - db
       - redis
-      # - es
+      - es
     volumes:
       - ./public/system:/mastodon/public/system
 
   streaming:
     build: .
-    image: ghcr.io/mastodon/mastodon:v4.2.0
+    image: ghcr.io/mastodon/mastodon:v4.2.3
     restart: always
     env_file: .env.production
     command: node ./streaming
@@ -88,17 +89,57 @@ services:
       # prettier-ignore
       test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:4000/api/v1/streaming/health || exit 1']
     ports:
-      - '127.0.0.1:4000:4000'
+      - '192.168.1.11:4000:4000'
     depends_on:
       - db
       - redis
 
-  sidekiq:
+  sidekiq-base:
+     build: .
+     image: ghcr.io/mastodon/mastodon:v4.2.3
+     restart: always
+     env_file: .env.production
+    environment:
+      - DB_POOL=20
+    command: bundle exec sidekiq -q default -q mailers -q scheduler -q ingress -c 20
+    depends_on:
+      - db
+      - redis
+    networks:
+      - external_network
+      - internal_network
+    volumes:
+      - ./public/system:/mastodon/public/system
+    healthcheck:
+      test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
+
+  sidekiq-pull:
     build: .
-    image: ghcr.io/mastodon/mastodon:v4.2.0
+    image: ghcr.io/mastodon/mastodon:v4.2.3
     restart: always
     env_file: .env.production
-    command: bundle exec sidekiq
+    environment:
+      - DB_POOL=15
+    command: bundle exec sidekiq -q pull -q push -c 15
+    depends_on:
+      - db
+      - redis
+    networks:
+      - external_network
+      - internal_network
+    volumes:
+      - ./public/system:/mastodon/public/system
+    healthcheck:
+      test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
+
+  sidekiq-push:
+    build: .
+    image: ghcr.io/mastodon/mastodon:v4.2.3
+    restart: always
+    env_file: .env.production
+    environment:
+      - DB_POOL=15
+    command: bundle exec sidekiq -q push -q pull -c 15
     depends_on:
       - db
       - redis
