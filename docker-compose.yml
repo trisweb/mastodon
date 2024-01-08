@@ -95,10 +95,10 @@ services:
       - redis
 
   sidekiq-base:
-     build: .
-     image: ghcr.io/mastodon/mastodon:v4.2.3
-     restart: always
-     env_file: .env.production
+    build: .
+    image: ghcr.io/mastodon/mastodon:v4.2.3
+    restart: always
+    env_file: .env.production
     environment:
       - DB_POOL=20
     command: bundle exec sidekiq -q default -q mailers -q scheduler -q ingress -c 20
