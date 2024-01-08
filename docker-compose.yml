@@ -95,10 +95,10 @@ services:
       - redis
 
   sidekiq-base:
-     build: .
-     image: ghcr.io/mastodon/mastodon:v4.2.3
-     restart: always
-     env_file: .env.production
+    build: .
+    image: ghcr.io/mastodon/mastodon:v4.2.3
+    restart: always
+    env_file: .env.production
     environment:
       - DB_POOL=20
     command: bundle exec sidekiq -q default -q mailers -q scheduler -q ingress -c 20
@@ -150,23 +150,6 @@ services:
       - ./public/system:/mastodon/public/system
     healthcheck:
       test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
-
-  ## Uncomment to enable federation with tor instances along with adding the following ENV variables
-  ## http_hidden_proxy=http://privoxy:8118
-  ## ALLOW_ACCESS_TO_HIDDEN_SERVICE=true
-  # tor:
-  #   image: sirboops/tor
-  #   networks:
-  #      - external_network
-  #      - internal_network
-  #
-  # privoxy:
-  #   image: sirboops/privoxy
-  #   volumes:
-  #     - ./priv-config:/opt/config
-  #   networks:
-  #     - external_network
-  #     - internal_network
 
 networks:
   external_network:
