@@ -19,6 +19,41 @@ Click below to **learn more** in a video:
 
 [youtube_demo]: https://www.youtube.com/watch?v=IPSbNdBmWKE
 
+## Tristan's Fork
+
+This is Tristan's (@trisweb) fork of Mastodon, for storing my modifications and specific configuration for my server. Since Mastodon's configuration is often intertwined with the code itself, keeping a separate branch is a decent way to ensure my setup is saved properly and kept up to date systematically.
+
+Primary modifications and changes:
+
+* Update the docker-compose.yaml configuration to suit my server capacity and needs.
+* Change the default SSL setting and implementation to disable SSL (as my server is in front of a proxy that handles SSL)
+* Add the `MAX_POST_CHARS` environment variable via PR mastodon/mastodon#27629 [from shleeable/mastodon-aussocial](https://github.com/shleeable/mastodon-aussocial/tree/patch-1)
+
+### Instructions for Updating This Fork
+
+**To update and merge in upstream changes:**
+
+```sh
+git checkout main # Ensure we're on the main branch
+git fetch upstream
+git merge upstream/main
+git push origin main
+```
+
+**To pull latest tags:**
+
+```sh
+git fetch --tags upstream
+git push origin --tags
+```
+
+**To checkout a tag marking a specific release version (to upgrade to):**
+
+```sh
+git checkout v4.2.3
+``
+
+
 ## Navigation
 
 - [Project homepage 🐘](https://joinmastodon.org)
