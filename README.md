@@ -47,11 +47,22 @@ git fetch --tags upstream
 git push origin --tags
 ```
 
-**To checkout a tag marking a specific release version (to upgrade to):**
+**To pull in changes from a tag (uograde)**
 
 ```sh
-git checkout v4.2.3
-``
+git checkout trisweb-v4.2.3  # Example
+git merge v4.2.4 # Merge in new changes
+```
+
+Resolve any conflicts and push changes.
+
+Once pulled on the server, the new code will need to be built for the container. This can
+be made more efficient by only building the web container, as it's where tne only changes are.
+
+```sh
+docker compose build web
+docker compose down && docker compose up -d
+```
 
 
 ## Navigation
