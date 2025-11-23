@@ -19,6 +19,57 @@
 
 Mastodon is a **free, open-source social network server** based on [ActivityPub](https://www.w3.org/TR/activitypub/) where users can follow friends and discover new ones. On Mastodon, users can publish anything they want: links, pictures, text, and video. All Mastodon servers are interoperable as a federated network (users on one server can seamlessly communicate with users from another one, including non-Mastodon software that implements ActivityPub!)
 
+Click below to **learn more** in a video:
+
+[![Screenshot](https://blog.joinmastodon.org/2018/06/why-activitypub-is-the-future/ezgif-2-60f1b00403.gif)][youtube_demo]
+
+[youtube_demo]: https://www.youtube.com/watch?v=IPSbNdBmWKE
+
+## Tristan's Fork
+
+This is Tristan's (@trisweb) fork of Mastodon, for storing my modifications and specific configuration for my server. Since Mastodon's configuration is often intertwined with the code itself, keeping a separate branch is a decent way to ensure my setup is saved properly and kept up to date systematically.
+
+Primary modifications and changes:
+
+* Update the docker-compose.yaml configuration to suit my server capacity and needs.
+* Change the default SSL setting and implementation to disable SSL (as my server is in front of a proxy that handles SSL)
+* Add the `MAX_POST_CHARS` environment variable via PR mastodon/mastodon#27629 [from shleeable/mastodon-aussocial](https://github.com/shleeable/mastodon-aussocial/tree/patch-1)
+
+### Instructions for Updating This Fork
+
+**To update and merge in upstream changes:**
+
+```sh
+git checkout main # Ensure we're on the main branch
+git fetch upstream
+git merge upstream/main
+git push origin main
+```
+
+**To pull latest tags:**
+
+```sh
+git fetch --tags upstream
+git push origin --tags
+```
+
+**To pull in changes from a tag (uograde)**
+
+```sh
+git checkout trisweb-v4.2.3  # Example
+git merge v4.2.4 # Merge in new changes
+```
+
+Resolve any conflicts and push changes.
+
+Once pulled on the server, the new code will need to be built for the container. This can
+be made more efficient by only building the web container, as it's where tne only changes are.
+
+```sh
+docker compose build web
+docker compose down && docker compose up -d
+```
+
 ## Navigation
 
 - [Project homepage 🐘](https://joinmastodon.org)
